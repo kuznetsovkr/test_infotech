@@ -29,13 +29,13 @@ export function resolvePostLoginRedirect(router, value) {
   const target = getSafeInternalRedirect(value)
 
   if (!target) {
-    return '/'
+    return '/books'
   }
 
   const resolvedTarget = router.resolve(target)
 
   if (resolvedTarget.name === 'login' || resolvedTarget.matched.length === 0) {
-    return '/'
+    return '/books'
   }
 
   return resolvedTarget.fullPath

@@ -8,7 +8,7 @@ const router = useRouter()
 
 async function handleLogout() {
   authStore.logout()
-  await router.replace({ name: 'home' })
+  await router.replace({ name: 'books' })
 }
 </script>
 
@@ -16,9 +16,11 @@ async function handleLogout() {
   <div class="app-shell d-flex flex-column min-vh-100">
     <header class="border-bottom bg-white">
       <nav class="navbar container" aria-label="Основная навигация">
-        <RouterLink class="navbar-brand fw-semibold" to="/">Каталог книг</RouterLink>
+        <RouterLink class="navbar-brand fw-semibold" to="/books">Каталог книг</RouterLink>
 
-        <div class="d-flex align-items-center gap-2">
+        <div class="d-flex flex-wrap align-items-center justify-content-end gap-2">
+          <RouterLink class="btn btn-link" to="/books">Книги</RouterLink>
+          <RouterLink class="btn btn-link" to="/authors">Авторы</RouterLink>
           <RouterLink v-if="authStore.isAuthenticated" class="btn btn-link" to="/account">
             Аккаунт
           </RouterLink>

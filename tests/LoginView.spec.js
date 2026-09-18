@@ -100,7 +100,7 @@ describe('LoginView', () => {
     await flushPromises()
 
     expect(useAuthStore(pinia).isAuthenticated).toBe(true)
-    expect(router.currentRoute.value.name).toBe('home')
+    expect(router.currentRoute.value.name).toBe('books')
     wrapper.unmount()
   })
 })

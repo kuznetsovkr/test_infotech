@@ -63,7 +63,7 @@ describe('auth route guards', () => {
     await router.push('/login?redirect=https://example.com')
     await router.isReady()
 
-    expect(router.currentRoute.value.name).toBe('home')
+    expect(router.currentRoute.value.name).toBe('books')
   })
 
   it('после 401 переводит пользователя с protected route на login', async () => {

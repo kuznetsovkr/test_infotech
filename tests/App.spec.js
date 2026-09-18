@@ -1,12 +1,25 @@
 import { createPinia } from 'pinia'
-import { mount } from '@vue/test-utils'
-import { describe, expect, it } from 'vitest'
+import { flushPromises, mount } from '@vue/test-utils'
+import { createMemoryHistory } from 'vue-router'
+import { describe, expect, it, vi } from 'vitest'
+
+vi.mock('../src/api/books.api', () => ({
+  getBook: vi.fn(),
+  getBooks: vi.fn(),
+}))
 
 import App from '../src/App.vue'
-import router from '../src/router'
+import { getBooks } from '../src/api/books.api'
+import { createAppRouter } from '../src/router'
 
 describe('App', () => {
-  it('монтирует приложение и отображает домашнюю страницу', async () => {
+  it('монтирует приложение и перенаправляет корневой route в каталог', async () => {
+    getBooks.mockResolvedValue({
+      items: [],
+      pagination: { page: 1, totalPages: 0 },
+    })
+    const router = createAppRouter(createMemoryHistory())
+
     await router.push('/')
     await router.isReady()
 
@@ -15,10 +28,10 @@ describe('App', () => {
         plugins: [createPinia(), router],
       },
     })
+    await flushPromises()
 
-    expect(wrapper.get('[data-testid="home-view"]').text()).toContain(
-      'Базовая инфраструктура готова',
-    )
+    expect(router.currentRoute.value.name).toBe('books')
+    expect(wrapper.get('h1').text()).toBe('Каталог книг')
 
     wrapper.unmount()
   })

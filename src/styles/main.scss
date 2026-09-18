@@ -13,7 +13,30 @@ body {
 }
 
 .account-view,
-.home-view,
 .login-view {
   max-width: 48rem;
+}
+
+.book-cover {
+  display: block;
+  width: 100%;
+  aspect-ratio: 3 / 4;
+  object-fit: cover;
+  background: var(--bs-secondary-bg);
+}
+
+.book-cover-fallback {
+  padding: 1rem;
+  color: var(--bs-secondary-color);
+}
+
+.book-description {
+  white-space: pre-line;
+}
+
+a:focus-visible,
+button:focus-visible,
+input:focus-visible {
+  outline: 3px solid rgba(var(--bs-primary-rgb), 0.35);
+  outline-offset: 2px;
 }

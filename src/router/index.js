@@ -2,15 +2,37 @@ import { createRouter, createWebHistory } from 'vue-router'
 
 import { useAuthStore } from '../stores/auth'
 import AccountView from '../views/AccountView.vue'
-import HomeView from '../views/HomeView.vue'
+import AuthorDetailsView from '../views/AuthorDetailsView.vue'
+import AuthorsListView from '../views/AuthorsListView.vue'
+import BookDetailsView from '../views/BookDetailsView.vue'
+import BooksListView from '../views/BooksListView.vue'
 import LoginView from '../views/LoginView.vue'
 import { resolvePostLoginRedirect } from './redirect'
 
 const routes = [
   {
     path: '/',
-    name: 'home',
-    component: HomeView,
+    redirect: { name: 'books' },
+  },
+  {
+    path: '/books',
+    name: 'books',
+    component: BooksListView,
+  },
+  {
+    path: '/books/:id',
+    name: 'book-details',
+    component: BookDetailsView,
+  },
+  {
+    path: '/authors',
+    name: 'authors',
+    component: AuthorsListView,
+  },
+  {
+    path: '/authors/:id',
+    name: 'author-details',
+    component: AuthorDetailsView,
   },
   {
     path: '/login',
