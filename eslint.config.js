@@ -5,7 +5,13 @@ import globals from 'globals'
 
 export default [
   {
-    ignores: ['coverage/**', 'dist/**', 'node_modules/**'],
+    ignores: [
+      '.smoke-profile/**',
+      'coverage/**',
+      'dist/**',
+      'node_modules/**',
+      'public/mockServiceWorker.js',
+    ],
   },
   js.configs.recommended,
   ...pluginVue.configs['flat/recommended'],

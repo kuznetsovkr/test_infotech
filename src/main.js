@@ -9,27 +9,42 @@ import httpClient, { installAuthInterceptors } from './api/http'
 import router, { handleUnauthorized, registerAuthGuards } from './router'
 import { useAuthStore } from './stores/auth'
 
-const app = createApp(App)
-const pinia = createPinia()
-const authStore = useAuthStore(pinia)
+async function enableMocking() {
+  if (import.meta.env.VITE_USE_MOCK_API !== 'true') {
+    return
+  }
 
-authStore.restoreSession()
-registerAuthGuards(router, pinia)
+  const { startMockWorker } = await import('./mocks/browser')
+  await startMockWorker()
+}
 
-installAuthInterceptors(httpClient, {
-  getToken: () => {
-    if (!authStore.isAuthenticated) {
-      authStore.logout()
-      return null
-    }
+async function bootstrap() {
+  await enableMocking()
 
-    return authStore.token
-  },
-  onUnauthorized: () => {
-    void handleUnauthorized(router, authStore)
-  },
-})
+  const app = createApp(App)
+  const pinia = createPinia()
+  const authStore = useAuthStore(pinia)
 
-app.use(pinia)
-app.use(router)
-app.mount('#app')
+  authStore.restoreSession()
+  registerAuthGuards(router, pinia)
+
+  installAuthInterceptors(httpClient, {
+    getToken: () => {
+      if (!authStore.isAuthenticated) {
+        authStore.logout()
+        return null
+      }
+
+      return authStore.token
+    },
+    onUnauthorized: () => {
+      void handleUnauthorized(router, authStore)
+    },
+  })
+
+  app.use(pinia)
+  app.use(router)
+  app.mount('#app')
+}
+
+void bootstrap()

@@ -1,6 +1,6 @@
 # Каталог книг
 
-Frontend тестового задания для каталога книг. Реализованы публичный каталог, TOP-10 отчёт, authentication и CRUD книг и авторов; mock API и SMS пока не реализованы.
+Frontend тестового задания для каталога книг. Реализованы публичный каталог, TOP-10 отчёт, authentication, CRUD книг и авторов, а также необязательный локальный demo API на MSW. Subscription/SMS functionality пока не реализована.
 
 ## Стек
 
@@ -8,6 +8,7 @@ Frontend тестового задания для каталога книг. Р�
 - Vue Router и Pinia;
 - Axios;
 - Bootstrap 5 и SCSS;
+- MSW для изолированного demo mode;
 - Vitest и Vue Test Utils;
 - ESLint и Prettier.
 
@@ -39,8 +40,38 @@ Copy-Item .env.example .env
 
 ## Запуск development server
 
+Production-like запуск использует адрес backend из `VITE_API_BASE_URL` и не включает MSW:
+
 ```bash
 npm run dev
+```
+
+## Demo mode
+
+Demo mode позволяет проверить существующие экраны без Yii2 backend и внешних сервисов:
+
+```bash
+npm install
+npm run dev:demo
+```
+
+Демонстрационные credentials:
+
+```text
+username: demo
+password: demo
+```
+
+Команда использует tracked-конфигурацию `.env.demo`: MSW browser worker запускается до монтирования Vue только при `VITE_USE_MOCK_API=true`. Обычные `npm run dev` и `npm run build` его не запускают. Production-контракт и API adapters остаются теми же и определяются [`book.yaml`](./book.yaml); demo handlers локально воспроизводят используемые endpoints `/api/v1`.
+
+Seed содержит 24 тестовых автора и 36 книг. Обложки seed-книг — локальные SVG data URL, загруженные в формах файлы сохраняются как data URL только внутри mock infrastructure. Нормализованная demo-база сохраняется между reload в `localStorage` под отдельным ключом `infotech-demo-db-v1`; экспортированная `resetMockDatabase()` восстанавливает исходный seed для тестов и будущих demo tools.
+
+Mock-only поведение удаления автора: его id удаляется из связей книг, а книги без оставшихся авторов удаляются. Исходный OpenAPI не определяет этот случай, поэтому данное правило не является production assumption и не реализовано во frontend UI.
+
+Demo build можно отдельно проверить командой:
+
+```bash
+npm run build:demo
 ```
 
 ## Проверки
@@ -55,10 +86,10 @@ npm run build
 
 ## Environment variables
 
-| Переменная          | Значение по умолчанию | Назначение                                                                                 |
-| ------------------- | --------------------- | ------------------------------------------------------------------------------------------ |
-| `VITE_API_BASE_URL` | `/api/v1`             | Base URL основного API. HTTP-клиент использует тот же fallback, если переменная не задана. |
-| `VITE_USE_MOCK_API` | `false`               | Зарезервированный флаг будущего mock mode; MSW на этапе 0 не подключён.                    |
+| Переменная          | Значение по умолчанию | Назначение                                                                                      |
+| ------------------- | --------------------- | ----------------------------------------------------------------------------------------------- |
+| `VITE_API_BASE_URL` | `/api/v1`             | Base URL основного API. HTTP-клиент использует тот же fallback, если переменная не задана.      |
+| `VITE_USE_MOCK_API` | `false`               | Включает локальный MSW demo API при точном значении `true`; обычный режим остаётся выключенным. |
 
 В `.env.example` нет credentials или других секретов. Переменные с префиксом `VITE_` попадают в browser bundle и не должны содержать секретные значения.
 
