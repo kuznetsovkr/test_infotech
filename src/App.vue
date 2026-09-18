@@ -21,6 +21,7 @@ async function handleLogout() {
         <div class="d-flex flex-wrap align-items-center justify-content-end gap-2">
           <RouterLink class="btn btn-link" to="/books">Книги</RouterLink>
           <RouterLink class="btn btn-link" to="/authors">Авторы</RouterLink>
+          <RouterLink class="btn btn-link" to="/reports/top-authors">ТОП авторов</RouterLink>
           <RouterLink v-if="authStore.isAuthenticated" class="btn btn-link" to="/account">
             Аккаунт
           </RouterLink>

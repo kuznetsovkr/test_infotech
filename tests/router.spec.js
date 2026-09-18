@@ -56,6 +56,16 @@ describe('auth route guards', () => {
     expect(router.currentRoute.value.query.redirect).toBe('/books/new')
   })
 
+  it('оставляет отчёт публичным для guest', async () => {
+    const { router } = createGuardedRouter()
+
+    await router.push('/reports/top-authors?year=2025')
+    await router.isReady()
+
+    expect(router.currentRoute.value.name).toBe('top-authors-report')
+    expect(router.currentRoute.value.meta.requiresAuth).toBeUndefined()
+  })
+
   it('разрешает authenticated user открыть protected route', async () => {
     const { pinia, router } = createGuardedRouter()
     authenticate(useAuthStore(pinia))

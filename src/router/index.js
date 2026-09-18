@@ -11,6 +11,7 @@ import BookDetailsView from '../views/BookDetailsView.vue'
 import BookEditView from '../views/BookEditView.vue'
 import BooksListView from '../views/BooksListView.vue'
 import LoginView from '../views/LoginView.vue'
+import TopAuthorsReportView from '../views/TopAuthorsReportView.vue'
 import { resolvePostLoginRedirect } from './redirect'
 
 const routes = [
@@ -69,6 +70,11 @@ const routes = [
     path: '/authors/:id',
     name: 'author-details',
     component: AuthorDetailsView,
+  },
+  {
+    path: '/reports/top-authors',
+    name: 'top-authors-report',
+    component: TopAuthorsReportView,
   },
   {
     path: '/login',

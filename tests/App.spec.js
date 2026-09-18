@@ -36,6 +36,7 @@ describe('App', () => {
 
     expect(router.currentRoute.value.name).toBe('books')
     expect(wrapper.get('h1').text()).toBe('Каталог книг')
+    expect(wrapper.get('a[href="/reports/top-authors"]').text()).toBe('ТОП авторов')
 
     wrapper.unmount()
   })
