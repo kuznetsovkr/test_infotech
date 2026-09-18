@@ -1,5 +1,15 @@
 <script setup>
-import { RouterLink, RouterView } from 'vue-router'
+import { RouterLink, RouterView, useRouter } from 'vue-router'
+
+import { useAuthStore } from './stores/auth'
+
+const authStore = useAuthStore()
+const router = useRouter()
+
+async function handleLogout() {
+  authStore.logout()
+  await router.replace({ name: 'home' })
+}
 </script>
 
 <template>
@@ -7,6 +17,21 @@ import { RouterLink, RouterView } from 'vue-router'
     <header class="border-bottom bg-white">
       <nav class="navbar container" aria-label="Основная навигация">
         <RouterLink class="navbar-brand fw-semibold" to="/">Каталог книг</RouterLink>
+
+        <div class="d-flex align-items-center gap-2">
+          <RouterLink v-if="authStore.isAuthenticated" class="btn btn-link" to="/account">
+            Аккаунт
+          </RouterLink>
+          <RouterLink v-else class="btn btn-outline-primary" to="/login">Войти</RouterLink>
+          <button
+            v-if="authStore.isAuthenticated"
+            class="btn btn-outline-secondary"
+            type="button"
+            @click="handleLogout"
+          >
+            Выйти
+          </button>
+        </div>
       </nav>
     </header>
 

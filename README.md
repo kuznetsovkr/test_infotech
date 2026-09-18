@@ -1,6 +1,6 @@
 # Каталог книг
 
-Frontend тестового задания для каталога книг. На этапе 0 создан только запускаемый каркас проекта и quality gate; каталог, авторизация, CRUD, отчёты, mock API и SMS пока не реализованы.
+Frontend тестового задания для каталога книг. Реализованы базовая API-инфраструктура и authentication; каталог, CRUD, отчёты, mock API и SMS пока не реализованы.
 
 ## Стек
 
@@ -62,13 +62,19 @@ npm run build
 
 В `.env.example` нет credentials или других секретов. Переменные с префиксом `VITE_` попадают в browser bundle и не должны содержать секретные значения.
 
+## Authentication
+
+Вход выполняется только через описанный в OpenAPI `POST /auth/login`. Полученный Bearer JWT, `expires_at` и объект пользователя сохраняются в `localStorage`; username/password отдельно не сохраняются. При старте структура сессии и срок действия проверяются, а повреждённая или истёкшая запись удаляется. Ответ `401` очищает сессию, тогда как `403` не выполняет logout.
+
+В исходном контракте нет `/auth/me`, refresh token и server-side logout. Поэтому восстановление выполняется только из локальной сессии, а кнопка выхода удаляет её на клиенте. Route guards улучшают UX, но backend остаётся источником авторизации.
+
 ## API assumptions
 
 - Единственный source of truth для production API — [`book.yaml`](./book.yaml). Frontend не должен придумывать отсутствующие production endpoints.
 - OpenAPI описывает `author_ids` как multipart-массив, но явно не определяет его wire encoding.
 - Рабочее предположение для заявленного Yii2/PHP backend: элементы будут отправляться как `author_ids[]=1`, `author_ids[]=2`. Когда Books API будет реализован, эта сериализация должна находиться только в API layer, чтобы формат менялся в одном месте.
 - Ограничения cover, year и ISBN, отсутствующие в OpenAPI, не считаются backend requirements. Будущая UX-валидация будет отделена от серверного контракта.
-- `/auth/me`, refresh token и logout endpoint отсутствуют. Будущая auth-реализация ограничивается `/auth/login` и client-side lifecycle сессии.
+- `/auth/me`, refresh token и logout endpoint отсутствуют. Auth-реализация ограничена `/auth/login` и client-side lifecycle сессии.
 - Subscription/SMS API в исходной спецификации отсутствует и в будущем останется изолированным demo-extension. На этапе 0 он не реализован.
 
 ## Документация

@@ -16,7 +16,9 @@ describe('App', () => {
       },
     })
 
-    expect(wrapper.get('[data-testid="home-view"]').text()).toContain('Каркас приложения готов')
+    expect(wrapper.get('[data-testid="home-view"]').text()).toContain(
+      'Базовая инфраструктура готова',
+    )
 
     wrapper.unmount()
   })
