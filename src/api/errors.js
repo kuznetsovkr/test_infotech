@@ -24,3 +24,22 @@ export function getApiErrorItems(error) {
       message: item.message.trim(),
     }))
 }
+
+export function mapApiFieldErrors(error, supportedFields) {
+  const allowedFields = new Set(supportedFields)
+  const fieldErrors = {}
+  const generalErrors = []
+
+  getApiErrorItems(error).forEach((item) => {
+    if (allowedFields.has(item.field) && !fieldErrors[item.field]) {
+      fieldErrors[item.field] = item.message
+    } else {
+      generalErrors.push(item.message)
+    }
+  })
+
+  return {
+    fieldErrors,
+    formError: generalErrors[0] ?? '',
+  }
+}

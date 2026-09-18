@@ -1,8 +1,9 @@
 <script setup>
 import { ref, watch } from 'vue'
 
-import { getAuthor, getAuthors } from '../../api/authors.api'
+import { getAuthor } from '../../api/authors.api'
 import { isRequestCanceled } from '../../api/errors'
+import { useAuthorSearch } from '../../composables/useAuthorSearch'
 import { useLatestRequest } from '../../composables/useLatestRequest'
 import AppPagination from '../common/AppPagination.vue'
 import LoadingState from '../common/LoadingState.vue'
@@ -18,16 +19,19 @@ const props = defineProps({
 
 const emit = defineEmits(['update:modelValue'])
 
-const searchInput = ref('')
-const results = ref([])
-const pagination = ref({ page: 1, totalPages: 0 })
+const {
+  hasSearched,
+  isSearching,
+  pagination,
+  resetSearchResults,
+  results,
+  searchAuthors,
+  searchError,
+  searchInput,
+} = useAuthorSearch({ pageSize: AUTHOR_SEARCH_PAGE_SIZE })
 const selectedAuthor = ref(null)
-const isSearching = ref(false)
-const searchError = ref('')
 const selectedAuthorError = ref('')
-const hasSearched = ref(false)
 
-const searchRequest = useLatestRequest()
 const selectedAuthorRequest = useLatestRequest()
 
 watch(
@@ -63,38 +67,6 @@ watch(
   { immediate: true },
 )
 
-async function searchAuthors(page = 1) {
-  const request = searchRequest.begin()
-  isSearching.value = true
-  searchError.value = ''
-  hasSearched.value = true
-
-  try {
-    const response = await getAuthors({
-      page,
-      perPage: AUTHOR_SEARCH_PAGE_SIZE,
-      search: searchInput.value,
-      signal: request.signal,
-    })
-
-    if (!request.isLatest()) {
-      return
-    }
-
-    results.value = response.items
-    pagination.value = response.pagination
-  } catch (error) {
-    if (request.isLatest() && !isRequestCanceled(error)) {
-      results.value = []
-      searchError.value = 'Не удалось загрузить авторов. Повторите попытку.'
-    }
-  } finally {
-    if (request.isLatest()) {
-      isSearching.value = false
-    }
-  }
-}
-
 function selectAuthor(author) {
   if (!Number.isInteger(author.id)) {
     return
@@ -102,8 +74,7 @@ function selectAuthor(author) {
 
   selectedAuthor.value = author
   selectedAuthorError.value = ''
-  results.value = []
-  hasSearched.value = false
+  resetSearchResults()
   emit('update:modelValue', author.id)
 }
 

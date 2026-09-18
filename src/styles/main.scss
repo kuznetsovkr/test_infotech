@@ -30,13 +30,25 @@ body {
   color: var(--bs-secondary-color);
 }
 
+.book-cover-preview {
+  max-width: 14rem;
+}
+
+.book-author-chip {
+  max-width: 100%;
+  white-space: normal;
+  overflow-wrap: anywhere;
+  text-align: left;
+}
+
 .book-description {
   white-space: pre-line;
 }
 
 a:focus-visible,
 button:focus-visible,
-input:focus-visible {
+input:focus-visible,
+textarea:focus-visible {
   outline: 3px solid rgba(var(--bs-primary-rgb), 0.35);
   outline-offset: 2px;
 }

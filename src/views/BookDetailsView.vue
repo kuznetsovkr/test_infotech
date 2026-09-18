@@ -1,30 +1,37 @@
 <script setup>
-import { ref, watch } from 'vue'
-import { useRoute } from 'vue-router'
+import { computed, ref, watch } from 'vue'
+import { useRoute, useRouter } from 'vue-router'
 
-import { getBook } from '../api/books.api'
+import { deleteBook, getBook } from '../api/books.api'
 import { getHttpStatus, isRequestCanceled } from '../api/errors'
 import BookCover from '../components/books/BookCover.vue'
+import ConfirmDialog from '../components/common/ConfirmDialog.vue'
 import ErrorAlert from '../components/common/ErrorAlert.vue'
 import LoadingState from '../components/common/LoadingState.vue'
 import { useLatestRequest } from '../composables/useLatestRequest'
 import { parsePositiveInteger } from '../router/publicQuery'
+import { useAuthStore } from '../stores/auth'
 
 const route = useRoute()
+const router = useRouter()
+const authStore = useAuthStore()
 const latestRequest = useLatestRequest()
+const bookId = computed(() => parsePositiveInteger(route.params.id))
 
 const book = ref(null)
 const isLoading = ref(false)
 const errorMessage = ref('')
 const isNotFound = ref(false)
+const isDeleteDialogOpen = ref(false)
+const isDeleting = ref(false)
+const deleteError = ref('')
 
 async function loadBook() {
-  const id = parsePositiveInteger(route.params.id)
   book.value = null
   errorMessage.value = ''
   isNotFound.value = false
 
-  if (!id) {
+  if (!bookId.value) {
     latestRequest.cancel()
     isLoading.value = false
     isNotFound.value = true
@@ -35,7 +42,7 @@ async function loadBook() {
   isLoading.value = true
 
   try {
-    const response = await getBook(id, { signal: request.signal })
+    const response = await getBook(bookId.value, { signal: request.signal })
 
     if (request.isLatest()) {
       book.value = response
@@ -54,6 +61,47 @@ async function loadBook() {
     if (request.isLatest()) {
       isLoading.value = false
     }
+  }
+}
+
+function openDeleteDialog() {
+  deleteError.value = ''
+  isDeleteDialogOpen.value = true
+}
+
+function closeDeleteDialog() {
+  if (!isDeleting.value) {
+    isDeleteDialogOpen.value = false
+    deleteError.value = ''
+  }
+}
+
+async function confirmDelete() {
+  if (isDeleting.value || !bookId.value) {
+    return
+  }
+
+  deleteError.value = ''
+  isDeleting.value = true
+
+  try {
+    await deleteBook(bookId.value)
+    isDeleteDialogOpen.value = false
+    await router.push({ name: 'books' })
+  } catch (error) {
+    const status = getHttpStatus(error)
+
+    if (status === 403) {
+      deleteError.value = 'Недостаточно прав для удаления книги.'
+    } else if (status === 404) {
+      isDeleteDialogOpen.value = false
+      book.value = null
+      isNotFound.value = true
+    } else if (status !== 401) {
+      deleteError.value = 'Не удалось удалить книгу. Попробуйте ещё раз.'
+    }
+  } finally {
+    isDeleting.value = false
   }
 }
 
@@ -81,9 +129,22 @@ watch(() => route.params.id, loadBook, { immediate: true })
       <BookCover :src="book.cover_url" :title="book.title" />
     </div>
     <div class="col-12 col-sm-7 col-lg-8">
-      <h1 id="book-title" class="display-6 fw-bold">
-        {{ book.title || 'Название не указано' }}
-      </h1>
+      <div class="d-flex flex-wrap justify-content-between align-items-start gap-3">
+        <h1 id="book-title" class="display-6 fw-bold mb-0">
+          {{ book.title || 'Название не указано' }}
+        </h1>
+        <div v-if="authStore.isAuthenticated && bookId" class="d-flex flex-wrap gap-2">
+          <RouterLink
+            class="btn btn-outline-primary"
+            :to="{ name: 'book-edit', params: { id: bookId } }"
+          >
+            Редактировать
+          </RouterLink>
+          <button class="btn btn-outline-danger" type="button" @click="openDeleteDialog">
+            Удалить
+          </button>
+        </div>
+      </div>
 
       <dl class="row mt-4">
         <dt class="col-sm-3">Год</dt>
@@ -111,5 +172,16 @@ watch(() => route.params.id, loadBook, { immediate: true })
         <p class="book-description mb-0">{{ book.description || 'Описание отсутствует.' }}</p>
       </section>
     </div>
+
+    <ConfirmDialog
+      :is-open="isDeleteDialogOpen"
+      title="Удалить книгу?"
+      :message="`Книга «${book.title || 'Без названия'}» будет удалена. Это действие нельзя отменить.`"
+      confirm-label="Удалить"
+      :is-processing="isDeleting"
+      :error-message="deleteError"
+      @cancel="closeDeleteDialog"
+      @confirm="confirmDelete"
+    />
   </article>
 </template>

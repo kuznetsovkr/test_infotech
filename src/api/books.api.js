@@ -1,4 +1,5 @@
 import httpClient from './http'
+import { createBookFormData, createBookInput } from './bookPayload'
 import { normalizeEntityResponse, normalizeListResponse } from './response'
 
 const DEFAULT_BOOKS_PER_PAGE = 12
@@ -46,4 +47,26 @@ export async function getBook(id, { signal } = {}) {
   const response = await httpClient.get(`/books/${id}`, config)
 
   return normalizeEntityResponse(response)
+}
+
+export async function createBook(book) {
+  const response = await httpClient.post('/books', createBookFormData(book))
+
+  return normalizeEntityResponse(response)
+}
+
+export async function patchBook(id, book) {
+  const response = await httpClient.patch(`/books/${id}`, createBookInput(book))
+
+  return normalizeEntityResponse(response)
+}
+
+export async function replaceBook(id, book) {
+  const response = await httpClient.put(`/books/${id}`, createBookFormData(book))
+
+  return normalizeEntityResponse(response)
+}
+
+export async function deleteBook(id) {
+  await httpClient.delete(`/books/${id}`)
 }

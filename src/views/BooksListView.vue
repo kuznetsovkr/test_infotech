@@ -18,11 +18,13 @@ import {
   normalizeBooksQuery,
   parseOptionalInteger,
 } from '../router/publicQuery'
+import { useAuthStore } from '../stores/auth'
 
 const BOOKS_PER_PAGE = 12
 
 const route = useRoute()
 const router = useRouter()
+const authStore = useAuthStore()
 const latestRequest = useLatestRequest()
 
 const books = ref([])
@@ -154,6 +156,13 @@ async function changePage(page) {
         <h1 id="books-title" class="display-6 fw-bold mb-1">Каталог книг</h1>
         <p class="text-body-secondary mb-0">Публичный список книг из API.</p>
       </div>
+      <RouterLink
+        v-if="authStore.isAuthenticated"
+        class="btn btn-primary"
+        :to="{ name: 'book-create' }"
+      >
+        Добавить книгу
+      </RouterLink>
     </div>
 
     <div class="row g-3 mb-4">

@@ -6,7 +6,9 @@ import AuthorCreateView from '../views/AuthorCreateView.vue'
 import AuthorDetailsView from '../views/AuthorDetailsView.vue'
 import AuthorEditView from '../views/AuthorEditView.vue'
 import AuthorsListView from '../views/AuthorsListView.vue'
+import BookCreateView from '../views/BookCreateView.vue'
 import BookDetailsView from '../views/BookDetailsView.vue'
+import BookEditView from '../views/BookEditView.vue'
 import BooksListView from '../views/BooksListView.vue'
 import LoginView from '../views/LoginView.vue'
 import { resolvePostLoginRedirect } from './redirect'
@@ -20,6 +22,22 @@ const routes = [
     path: '/books',
     name: 'books',
     component: BooksListView,
+  },
+  {
+    path: '/books/new',
+    name: 'book-create',
+    component: BookCreateView,
+    meta: {
+      requiresAuth: true,
+    },
+  },
+  {
+    path: '/books/:id/edit',
+    name: 'book-edit',
+    component: BookEditView,
+    meta: {
+      requiresAuth: true,
+    },
   },
   {
     path: '/books/:id',

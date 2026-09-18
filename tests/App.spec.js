@@ -4,8 +4,12 @@ import { createMemoryHistory } from 'vue-router'
 import { describe, expect, it, vi } from 'vitest'
 
 vi.mock('../src/api/books.api', () => ({
+  createBook: vi.fn(),
+  deleteBook: vi.fn(),
   getBook: vi.fn(),
   getBooks: vi.fn(),
+  patchBook: vi.fn(),
+  replaceBook: vi.fn(),
 }))
 
 import App from '../src/App.vue'

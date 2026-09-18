@@ -1,10 +1,15 @@
 import { flushPromises, mount } from '@vue/test-utils'
+import { createPinia } from 'pinia'
 import { createMemoryHistory } from 'vue-router'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 
 vi.mock('../src/api/books.api', () => ({
+  createBook: vi.fn(),
+  deleteBook: vi.fn(),
   getBook: vi.fn(),
   getBooks: vi.fn(),
+  patchBook: vi.fn(),
+  replaceBook: vi.fn(),
 }))
 
 import { getBook } from '../src/api/books.api'
@@ -24,7 +29,7 @@ describe('BookDetailsView', () => {
     const router = createAppRouter(createMemoryHistory())
     await router.push(path)
     await router.isReady()
-    wrapper = mount(BookDetailsView, { global: { plugins: [router] } })
+    wrapper = mount(BookDetailsView, { global: { plugins: [createPinia(), router] } })
     await flushPromises()
   }
 

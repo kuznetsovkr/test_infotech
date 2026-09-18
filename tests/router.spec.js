@@ -46,6 +46,16 @@ describe('auth route guards', () => {
     expect(router.currentRoute.value.query.redirect).toBe('/authors/new')
   })
 
+  it('не позволяет guest открыть форму создания книги', async () => {
+    const { router } = createGuardedRouter()
+
+    await router.push('/books/new')
+    await router.isReady()
+
+    expect(router.currentRoute.value.name).toBe('login')
+    expect(router.currentRoute.value.query.redirect).toBe('/books/new')
+  })
+
   it('разрешает authenticated user открыть protected route', async () => {
     const { pinia, router } = createGuardedRouter()
     authenticate(useAuthStore(pinia))

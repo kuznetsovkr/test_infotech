@@ -1,10 +1,15 @@
 import { flushPromises, mount } from '@vue/test-utils'
+import { createPinia } from 'pinia'
 import { createMemoryHistory } from 'vue-router'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
 vi.mock('../src/api/books.api', () => ({
+  createBook: vi.fn(),
+  deleteBook: vi.fn(),
   getBook: vi.fn(),
   getBooks: vi.fn(),
+  patchBook: vi.fn(),
+  replaceBook: vi.fn(),
 }))
 
 vi.mock('../src/api/authors.api', () => ({
@@ -69,7 +74,7 @@ describe('BooksListView', () => {
 
     wrapper = mount(BooksListView, {
       global: {
-        plugins: [router],
+        plugins: [createPinia(), router],
       },
     })
     await flushPromises()
@@ -107,7 +112,7 @@ describe('BooksListView', () => {
     await router.push('/books?page=1')
     await router.isReady()
 
-    wrapper = mount(BooksListView, { global: { plugins: [router] } })
+    wrapper = mount(BooksListView, { global: { plugins: [createPinia(), router] } })
     await wrapper.vm.$nextTick()
 
     expect(wrapper.get('[role="status"]').text()).toContain('Загрузка книг')
@@ -212,7 +217,7 @@ describe('BooksListView', () => {
     const router = createAppRouter(createMemoryHistory())
     await router.push('/books?page=1')
     await router.isReady()
-    wrapper = mount(BooksListView, { global: { plugins: [router] } })
+    wrapper = mount(BooksListView, { global: { plugins: [createPinia(), router] } })
     await wrapper.vm.$nextTick()
 
     await router.push('/books?search=new&page=1')
