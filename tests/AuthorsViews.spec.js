@@ -1,10 +1,14 @@
 import { flushPromises, mount } from '@vue/test-utils'
+import { createPinia } from 'pinia'
 import { createMemoryHistory } from 'vue-router'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
 vi.mock('../src/api/authors.api', () => ({
+  createAuthor: vi.fn(),
+  deleteAuthor: vi.fn(),
   getAuthor: vi.fn(),
   getAuthors: vi.fn(),
+  updateAuthor: vi.fn(),
 }))
 
 import { getAuthor, getAuthors } from '../src/api/authors.api'
@@ -36,7 +40,7 @@ describe('public authors views', () => {
     const router = createAppRouter(createMemoryHistory())
     await router.push('/authors?search=Анна&page=2')
     await router.isReady()
-    wrapper = mount(AuthorsListView, { global: { plugins: [router] } })
+    wrapper = mount(AuthorsListView, { global: { plugins: [createPinia(), router] } })
     await flushPromises()
 
     expect(wrapper.get('[data-testid="authors-list"]').text()).toContain('Анна Авторова')
@@ -64,7 +68,7 @@ describe('public authors views', () => {
     const router = createAppRouter(createMemoryHistory())
     await router.push('/authors/3')
     await router.isReady()
-    wrapper = mount(AuthorDetailsView, { global: { plugins: [router] } })
+    wrapper = mount(AuthorDetailsView, { global: { plugins: [createPinia(), router] } })
     await flushPromises()
 
     expect(wrapper.get('h1').text()).toBe('Анна Авторова')
@@ -77,7 +81,7 @@ describe('public authors views', () => {
     const router = createAppRouter(createMemoryHistory())
     await router.push('/authors/999')
     await router.isReady()
-    wrapper = mount(AuthorDetailsView, { global: { plugins: [router] } })
+    wrapper = mount(AuthorDetailsView, { global: { plugins: [createPinia(), router] } })
     await flushPromises()
 
     expect(wrapper.get('h1').text()).toBe('Автор не найден')

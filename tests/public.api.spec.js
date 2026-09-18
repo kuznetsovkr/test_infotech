@@ -1,6 +1,12 @@
 import { afterEach, describe, expect, it, vi } from 'vitest'
 
-import { getAuthor, getAuthors } from '../src/api/authors.api'
+import {
+  createAuthor,
+  deleteAuthor,
+  getAuthor,
+  getAuthors,
+  updateAuthor,
+} from '../src/api/authors.api'
 import { getBook, getBooks } from '../src/api/books.api'
 import httpClient from '../src/api/http'
 
@@ -64,5 +70,23 @@ describe('public API adapters', () => {
     })
     expect(getSpy).toHaveBeenNthCalledWith(2, '/authors/7', undefined)
     expect(getSpy).toHaveBeenNthCalledWith(3, '/books/11', undefined)
+  })
+
+  it('использует контракт author mutations и отправляет только full_name', async () => {
+    const postSpy = vi.spyOn(httpClient, 'post').mockResolvedValue({
+      data: { success: true, data: { id: 8, full_name: 'Новый автор' } },
+    })
+    const putSpy = vi.spyOn(httpClient, 'put').mockResolvedValue({
+      data: { success: true, data: { id: 8, full_name: 'Обновлённый автор' } },
+    })
+    const deleteSpy = vi.spyOn(httpClient, 'delete').mockResolvedValue({ status: 204 })
+
+    await createAuthor({ full_name: 'Новый автор', ignored: 'value' })
+    await updateAuthor(8, { full_name: 'Обновлённый автор', books: [{ id: 1 }] })
+    await deleteAuthor(8)
+
+    expect(postSpy).toHaveBeenCalledWith('/authors', { full_name: 'Новый автор' })
+    expect(putSpy).toHaveBeenCalledWith('/authors/8', { full_name: 'Обновлённый автор' })
+    expect(deleteSpy).toHaveBeenCalledWith('/authors/8')
   })
 })

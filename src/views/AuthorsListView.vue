@@ -15,11 +15,13 @@ import {
   mergeNormalizedQuery,
   normalizeAuthorsQuery,
 } from '../router/publicQuery'
+import { useAuthStore } from '../stores/auth'
 
 const AUTHORS_PER_PAGE = 20
 
 const route = useRoute()
 const router = useRouter()
+const authStore = useAuthStore()
 const latestRequest = useLatestRequest()
 
 const authors = ref([])
@@ -107,7 +109,16 @@ async function changePage(page) {
 
 <template>
   <section aria-labelledby="authors-title">
-    <h1 id="authors-title" class="display-6 fw-bold mb-4">Авторы</h1>
+    <div class="d-flex flex-wrap justify-content-between align-items-center gap-3 mb-4">
+      <h1 id="authors-title" class="display-6 fw-bold mb-0">Авторы</h1>
+      <RouterLink
+        v-if="authStore.isAuthenticated"
+        class="btn btn-primary"
+        :to="{ name: 'author-create' }"
+      >
+        Добавить автора
+      </RouterLink>
+    </div>
 
     <form
       class="row g-2 align-items-end border rounded bg-white p-3 mb-4"
@@ -134,12 +145,24 @@ async function changePage(page) {
         <li
           v-for="author in authors"
           :key="author.id ?? author.full_name"
-          class="list-group-item py-3"
+          class="list-group-item d-flex justify-content-between align-items-center gap-3 py-3"
         >
-          <RouterLink v-if="Number.isInteger(author.id)" :to="`/authors/${author.id}`">
+          <RouterLink
+            v-if="Number.isInteger(author.id)"
+            class="link-body-emphasis text-decoration-none stretched-link"
+            :to="`/authors/${author.id}`"
+          >
             {{ author.full_name || 'Имя автора не указано' }}
           </RouterLink>
           <span v-else>{{ author.full_name || 'Имя автора не указано' }}</span>
+          <RouterLink
+            v-if="authStore.isAuthenticated && Number.isInteger(author.id)"
+            class="btn btn-sm btn-outline-secondary position-relative z-2"
+            :to="{ name: 'author-edit', params: { id: author.id } }"
+            :aria-label="`Редактировать автора ${author.full_name || ''}`"
+          >
+            Редактировать
+          </RouterLink>
         </li>
       </ul>
 

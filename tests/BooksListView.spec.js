@@ -8,8 +8,11 @@ vi.mock('../src/api/books.api', () => ({
 }))
 
 vi.mock('../src/api/authors.api', () => ({
+  createAuthor: vi.fn(),
+  deleteAuthor: vi.fn(),
   getAuthor: vi.fn(),
   getAuthors: vi.fn(),
+  updateAuthor: vi.fn(),
 }))
 
 import { getAuthor, getAuthors } from '../src/api/authors.api'

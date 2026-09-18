@@ -2,7 +2,9 @@ import { createRouter, createWebHistory } from 'vue-router'
 
 import { useAuthStore } from '../stores/auth'
 import AccountView from '../views/AccountView.vue'
+import AuthorCreateView from '../views/AuthorCreateView.vue'
 import AuthorDetailsView from '../views/AuthorDetailsView.vue'
+import AuthorEditView from '../views/AuthorEditView.vue'
 import AuthorsListView from '../views/AuthorsListView.vue'
 import BookDetailsView from '../views/BookDetailsView.vue'
 import BooksListView from '../views/BooksListView.vue'
@@ -28,6 +30,22 @@ const routes = [
     path: '/authors',
     name: 'authors',
     component: AuthorsListView,
+  },
+  {
+    path: '/authors/new',
+    name: 'author-create',
+    component: AuthorCreateView,
+    meta: {
+      requiresAuth: true,
+    },
+  },
+  {
+    path: '/authors/:id/edit',
+    name: 'author-edit',
+    component: AuthorEditView,
+    meta: {
+      requiresAuth: true,
+    },
   },
   {
     path: '/authors/:id',

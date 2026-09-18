@@ -9,3 +9,18 @@ export function isRequestCanceled(error) {
     error?.name === 'CanceledError'
   )
 }
+
+export function getApiErrorItems(error) {
+  const errors = error?.response?.data?.errors
+
+  if (!Array.isArray(errors)) {
+    return []
+  }
+
+  return errors
+    .filter((item) => item && typeof item.message === 'string' && item.message.trim())
+    .map((item) => ({
+      field: typeof item.field === 'string' ? item.field : '',
+      message: item.message.trim(),
+    }))
+}

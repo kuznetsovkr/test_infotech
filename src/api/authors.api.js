@@ -36,3 +36,19 @@ export async function getAuthor(id, { signal } = {}) {
 
   return normalizeEntityResponse(response)
 }
+
+export async function createAuthor({ full_name }) {
+  const response = await httpClient.post('/authors', { full_name })
+
+  return normalizeEntityResponse(response)
+}
+
+export async function updateAuthor(id, { full_name }) {
+  const response = await httpClient.put(`/authors/${id}`, { full_name })
+
+  return normalizeEntityResponse(response)
+}
+
+export async function deleteAuthor(id) {
+  await httpClient.delete(`/authors/${id}`)
+}
