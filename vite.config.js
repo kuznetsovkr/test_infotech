@@ -1,12 +1,11 @@
 import { defineConfig, loadEnv } from 'vite'
 import vue from '@vitejs/plugin-vue'
 
-import { demoSmsPilotPlugin } from './vite/demoSmsPilotPlugin.js'
-
-export function createViteConfig({ command, mode }) {
+export async function createViteConfig({ command, mode }) {
   const plugins = [vue()]
 
   if (command === 'serve' && mode === 'demo') {
+    const { demoSmsPilotPlugin } = await import('./vite/demoSmsPilotPlugin.js')
     const serverEnv = loadEnv(mode, process.cwd(), '')
     plugins.push(
       demoSmsPilotPlugin({
@@ -17,6 +16,7 @@ export function createViteConfig({ command, mode }) {
 
   return {
     plugins,
+    publicDir: mode === 'demo' ? 'public' : false,
     test: {
       clearMocks: true,
       environment: 'jsdom',

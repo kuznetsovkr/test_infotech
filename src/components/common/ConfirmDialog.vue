@@ -1,5 +1,14 @@
 <script setup>
-import { nextTick, ref, watch } from 'vue'
+import { nextTick, onBeforeUnmount, ref, watch } from 'vue'
+
+const FOCUSABLE_SELECTOR = [
+  'a[href]',
+  'button:not([disabled])',
+  'input:not([disabled])',
+  'select:not([disabled])',
+  'textarea:not([disabled])',
+  '[tabindex]:not([tabindex="-1"])',
+].join(',')
 
 const props = defineProps({
   isOpen: {
@@ -30,14 +39,27 @@ const props = defineProps({
 
 const emit = defineEmits(['confirm', 'cancel'])
 const cancelButton = ref(null)
+const dialogElement = ref(null)
+let previouslyFocusedElement = null
 
 watch(
   () => props.isOpen,
   async (isOpen) => {
     if (isOpen) {
+      previouslyFocusedElement =
+        document.activeElement instanceof HTMLElement ? document.activeElement : null
       await nextTick()
       cancelButton.value?.focus()
+      return
     }
+
+    await nextTick()
+
+    if (previouslyFocusedElement?.isConnected) {
+      previouslyFocusedElement.focus()
+    }
+
+    previouslyFocusedElement = null
   },
 )
 
@@ -46,12 +68,48 @@ function cancel() {
     emit('cancel')
   }
 }
+
+function handleKeydown(event) {
+  if (event.key === 'Escape') {
+    cancel()
+    return
+  }
+
+  if (event.key !== 'Tab') {
+    return
+  }
+
+  const focusableElements = [...(dialogElement.value?.querySelectorAll(FOCUSABLE_SELECTOR) ?? [])]
+
+  if (focusableElements.length === 0) {
+    event.preventDefault()
+    return
+  }
+
+  const firstElement = focusableElements[0]
+  const lastElement = focusableElements.at(-1)
+
+  if (event.shiftKey && document.activeElement === firstElement) {
+    event.preventDefault()
+    lastElement.focus()
+  } else if (!event.shiftKey && document.activeElement === lastElement) {
+    event.preventDefault()
+    firstElement.focus()
+  }
+}
+
+onBeforeUnmount(() => {
+  if (previouslyFocusedElement?.isConnected) {
+    previouslyFocusedElement.focus()
+  }
+})
 </script>
 
 <template>
   <Teleport to="body">
-    <div v-if="isOpen" @keydown.esc="cancel">
+    <div v-if="isOpen" @keydown="handleKeydown">
       <div
+        ref="dialogElement"
         class="modal d-block"
         tabindex="-1"
         role="dialog"

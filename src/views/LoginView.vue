@@ -2,6 +2,7 @@
 import { nextTick, ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 
+import { getApiErrorItems } from '../api/errors'
 import { resolvePostLoginRedirect } from '../router/redirect'
 import { useAuthStore } from '../stores/auth'
 
@@ -16,14 +17,7 @@ const errorMessage = ref('')
 const errorAlert = ref(null)
 
 function getBackendMessage(error) {
-  const errors = error?.response?.data?.errors
-
-  if (!Array.isArray(errors)) {
-    return null
-  }
-
-  const errorWithMessage = errors.find((item) => typeof item?.message === 'string')
-  return errorWithMessage?.message ?? null
+  return getApiErrorItems(error)[0]?.message ?? null
 }
 
 function getLoginErrorMessage(error) {

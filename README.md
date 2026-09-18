@@ -1,163 +1,152 @@
-# Каталог книг
+# INFOTECH Book Catalog
 
-Frontend тестового задания для каталога книг. Реализованы публичный каталог, TOP-10 отчёт, authentication, CRUD книг и авторов, необязательный локальный demo API на MSW и изолированная bonus/demo-подписка с SMSPILOT emulator.
+Frontend тестового задания: каталог книг и авторов на Vue 3, реализованный по предоставленному OpenAPI-контракту [`book.yaml`](./book.yaml). Проект можно запустить с реальным API либо полностью локально в MSW demo mode.
 
-## Стек
+## Stack
 
-- Vue 3 и Vite;
-- Vue Router и Pinia;
-- Axios;
-- Bootstrap 5 и SCSS;
-- MSW для изолированного demo mode;
-- Vitest и Vue Test Utils;
-- ESLint и Prettier.
+- Vue 3, Vite, JavaScript;
+- Vue Router, Pinia, Axios;
+- Bootstrap 5, SCSS;
+- MSW;
+- Vitest, Vue Test Utils;
+- ESLint, Prettier.
 
-## Требования
+Рекомендуемая версия — Node.js 24 LTS (`.nvmrc`: `24`). Поле `engines` разрешает поддерживаемые линии `^22.22.2 || ^24.15.0`; EOL-линия Node.js 23 не поддерживается.
 
-- рекомендуемая версия — Node.js 24 LTS; `.nvmrc` позволяет выбрать эту линию командой `nvm use`;
-- поддерживаемые проектом линии: Node.js `^22.22.2` и `^24.15.0`;
-- Node.js 23 не поддерживается, поскольку эта линия достигла EOL;
-- Node.js 26 сейчас находится в статусе Current и не заявлен как LTS-версия проекта;
-- npm 10+.
-
-## Установка
-
-```bash
-npm install
-```
-
-Скопируйте пример environment-файла и при необходимости измените значения:
-
-```bash
-cp .env.example .env
-```
-
-Для PowerShell:
-
-```powershell
-Copy-Item .env.example .env
-```
-
-## Запуск development server
-
-Production-like запуск использует адрес backend из `VITE_API_BASE_URL` и не включает MSW:
-
-```bash
-npm run dev
-```
-
-## Demo mode
-
-Demo mode позволяет проверить существующие экраны без Yii2 backend и внешних сервисов:
+## Quick start — demo
 
 ```bash
 npm install
 npm run dev:demo
 ```
 
-Демонстрационные credentials:
+Yii2 backend для demo не нужен. Данные обслуживает MSW, а demo-сессия использует:
 
 ```text
 username: demo
 password: demo
 ```
 
-Команда использует tracked-конфигурацию `.env.demo`: MSW browser worker запускается до монтирования Vue только при `VITE_USE_MOCK_API=true`. Обычные `npm run dev` и `npm run build` его не запускают. Production-контракт и API adapters остаются теми же и определяются [`book.yaml`](./book.yaml); demo handlers локально воспроизводят используемые endpoints `/api/v1`.
+## Standard API mode
 
-Seed содержит 24 тестовых автора и 36 книг. Обложки seed-книг — локальные SVG data URL, загруженные в формах файлы сохраняются как data URL только внутри mock infrastructure. Нормализованная demo-база сохраняется между reload в `localStorage` под отдельным ключом `infotech-demo-db-v1`; экспортированная `resetMockDatabase()` восстанавливает исходный seed для тестов и будущих demo tools.
-
-Mock-only поведение удаления автора: его id удаляется из связей книг, а книги без оставшихся авторов удаляются. Исходный OpenAPI не определяет этот случай, поэтому данное правило не является production assumption и не реализовано во frontend UI.
-
-Demo build можно отдельно проверить командой:
+Создайте локальный `.env` из примера:
 
 ```bash
-npm run build:demo
+cp .env.example .env
+npm run dev
 ```
 
-## Bonus: subscriptions + SMSPILOT emulator
+PowerShell: `Copy-Item .env.example .env`.
 
-Subscription/SMS functionality — изолированное demo extension: таких endpoints и моделей нет в исходном [`book.yaml`](./book.yaml). Блок подписки доступен guest и authenticated user только в MSW demo mode.
+```dotenv
+VITE_API_BASE_URL=/api/v1
+VITE_USE_MOCK_API=false
+```
 
-Ручной сценарий:
+`VITE_API_BASE_URL` может быть относительным или абсолютным URL совместимого backend. Обычные `npm run dev` и `npm run build` не запускают MSW или SMS bridge.
 
-1. Запустить `npm run dev:demo`.
-2. Открыть страницу автора как guest и подписаться, например с номером `+7 908 796-47-81`.
-3. Войти с credentials `demo / demo`.
-4. Создать книгу и выбрать этого автора.
-5. Вернуться на страницу автора и открыть «Последние тестовые уведомления».
+## Available functionality
 
-Номер технически нормализуется до 10–15 цифр. Подписки сохраняются отдельно в `infotech-demo-subscriptions-v1`, журнал — в `infotech-demo-sms-log-v1`; полный телефон в UI журнала маскируется. Один номер получает одно событие на книгу, даже при подписке на нескольких её соавторов.
+### Guest
 
-Vite demo server предоставляет локальный bridge `/__demo/sms/send`. Browser передаёт ему только телефон и текст, а server-side adapter добавляет `SMSPILOT_API_KEY`, `format=json` и обязательный `test=1`. Используется официальный публичный emulator key из [документации SMSPILOT API-1](https://smspilot.ru/apikey.php?tab=api1): запрос действительно обрабатывается API-1, но оператору не передаётся и реальная SMS не отправляется. Production credential отсутствует во frontend и repository; переменной `VITE_SMSPILOT_*` нет.
+- каталог и страницы книг;
+- каталог и страницы авторов;
+- поиск, фильтры и пагинация с синхронизацией URL;
+- публичный TOP-10 авторов за выбранный год;
+- demo-подписка на автора при запуске в MSW mode.
 
-Bridge существует только во время `npm run dev:demo`. Static `npm run build:demo` сохраняет subscription UI, но самостоятельно вызвать SMSPILOT не может и покажет failed demo event. Production proposal и схема backend event/job описаны в [`docs/subscriptions-api.md`](./docs/subscriptions-api.md).
+### Authenticated user
 
-## Проверки
+- все возможности гостя;
+- создание, изменение и удаление книг;
+- создание, изменение и удаление авторов.
+
+Frontend route guards и скрытие controls отвечают за UX. Окончательное решение об авторизации всегда принимает backend.
+
+## Routes
+
+| Route                  | Назначение                           | Доступ        |
+| ---------------------- | ------------------------------------ | ------------- |
+| `/books`               | Каталог книг                         | Public        |
+| `/books/:id`           | Страница книги                       | Public        |
+| `/books/new`           | Создание книги                       | Authenticated |
+| `/books/:id/edit`      | Редактирование книги                 | Authenticated |
+| `/authors`             | Каталог авторов                      | Public        |
+| `/authors/:id`         | Автор и его книги                    | Public        |
+| `/authors/new`         | Создание автора                      | Authenticated |
+| `/authors/:id/edit`    | Редактирование автора                | Authenticated |
+| `/reports/top-authors` | TOP-10 авторов за выбранный год      | Public        |
+| `/login`               | Вход                                 | Public        |
+| `/account`             | Минимальная проверка защищённого URL | Authenticated |
+
+## API contract
+
+[`book.yaml`](./book.yaml) — единственный source of truth для production API. Production layer не добавляет отсутствующие endpoints.
+
+- Multipart encoding `author_ids` явно не определён. Для Yii2/PHP используется документированное предположение `author_ids[]=1`, `author_ids[]=2`; сериализация изолирована в `src/api/bookPayload.js`.
+- Создание книги — `POST /books` с полным `multipart/form-data` и обязательной обложкой.
+- Редактирование без нового cover — `PATCH /books/{id}` с JSON `BookInput`.
+- Редактирование с новым cover — `PUT /books/{id}` с полным multipart `BookForm`.
+- Ограничения размера cover и бизнес-правила для year/ISBN отсутствуют в OpenAPI. Frontend проверяет только integer year и image MIME.
+- Subscription/SMS endpoints и модель телефона в исходном OpenAPI отсутствуют; bonus-функциональность не является production API.
+
+## Authentication
+
+Вход использует только `POST /auth/login` и Bearer JWT. `token`, `user` и `expires_at` сохраняются в `localStorage`; password не сохраняется. При reload структура и срок действия сессии проверяются, а истёкшая или повреждённая запись очищается.
+
+Ответ `401` завершает локальную сессию и направляет пользователя на `/login`; `403` показывает ошибку доступа без logout. В контракте нет `/auth/me`, refresh token и server-side logout, поэтому такие запросы не выполняются. Redirect после входа разрешён только на внутренний route.
+
+## Demo mode
+
+`npm run dev:demo` включает browser MSW до монтирования Vue. Те же API adapters работают с mock и реальным backend без условий в presentation-компонентах.
+
+- deterministic seed: 24 автора и 36 книг;
+- поиск, фильтры, пагинация, auth, CRUD и report повторяют контракт;
+- many-to-many хранится через `author_ids`, response relations формируются динамически;
+- обложки работают без внешних CDN: seed использует SVG data URL, upload — data URL только внутри demo;
+- база сохраняется между reload в `infotech-demo-db-v1`;
+- `resetMockDatabase()` восстанавливает seed и очищает demo-подписки/SMS log.
+
+Mock-only поведение удаления автора: его id удаляется из связей, а книги без оставшихся авторов удаляются. Это не production assumption.
+
+## Bonus: subscriptions and SMSPILOT
+
+Bonus доступен guest и authenticated user только в demo mode. Подписки и журнал сохраняются отдельно в `infotech-demo-subscriptions-v1` и `infotech-demo-sms-log-v1`; повторная пара `author_id + phone` идемпотентна, а телефон в UI журнала маскируется.
+
+При создании книги MSW инициирует demo notification side effect. Browser обращается только к локальному `/__demo/sms/send`; Vite middleware добавляет server-side `SMSPILOT_API_KEY`, `format=json` и обязательный `test=1`, поэтому реальная SMS оператору не отправляется. Production credential отсутствует в frontend и не используется в `VITE_*`.
+
+Реальный emulator HTTP request доступен только через `npm run dev:demo`. Static `npm run build:demo` сохраняет demo UI/MSW, но без server-side bridge записывает попытку как failed event. Production proposal с Yii2 endpoint, `BookCreated` event и background job описан в [`docs/subscriptions-api.md`](./docs/subscriptions-api.md).
+
+## Testing
 
 ```bash
 npm run lint
 npm run test
 npm run build
+npm run build:demo
 ```
 
-Для интерактивного режима тестов доступен `npm run test:watch`.
+Дополнительно доступны `npm run test:watch`, `npm run format` и `npm run format:check`. Unit/component/integration tests не обращаются к реальному backend или SMSPILOT.
 
-## Environment variables
+## Architecture
 
-| Переменная          | Значение по умолчанию | Назначение                                                                                      |
-| ------------------- | --------------------- | ----------------------------------------------------------------------------------------------- |
-| `VITE_API_BASE_URL` | `/api/v1`             | Base URL основного API. HTTP-клиент использует тот же fallback, если переменная не задана.      |
-| `VITE_USE_MOCK_API` | `false`               | Включает локальный MSW demo API при точном значении `true`; обычный режим остаётся выключенным. |
+- `src/api` — Axios client, API adapters, response/error mapping и multipart serialization;
+- `src/views` — route-level orchestration и состояния экранов;
+- `src/components` — небольшие формы и presentation components;
+- `src/composables` — latest-request cancellation и server-side author search;
+- `src/stores` — Pinia auth session;
+- `src/mocks` — изолированные MSW handlers, normalized demo DB и bonus notification flow;
+- `vite` — demo-only server middleware для SMSPILOT emulator.
 
-`SMSPILOT_API_KEY` — server-side переменная только для Vite demo bridge. Она намеренно не имеет префикса `VITE_`; tracked `.env.demo` использует официальный публичный emulator key, а middleware всегда принудительно добавляет `test=1`.
+## Known limitations / assumptions
 
-В `.env.example` нет credentials или других секретов. Переменные с префиксом `VITE_` попадают в browser bundle и не должны содержать секретные значения.
+- Публичный Yii2 backend URL не предоставлен; для локальной проверки предназначен demo mode.
+- Multipart-массив `author_ids[]` — documented Yii2/PHP assumption до подтверждения backend-командой.
+- Production-поведение удаления автора, у которого есть книги, определяется backend и не задано исходным контрактом.
+- Static demo build не может выполнить SMSPILOT request без server-side Vite bridge.
 
-## Authentication
+## Documentation
 
-Вход выполняется только через описанный в OpenAPI `POST /auth/login`. Полученный Bearer JWT, `expires_at` и объект пользователя сохраняются в `localStorage`; username/password отдельно не сохраняются. При старте структура сессии и срок действия проверяются, а повреждённая или истёкшая запись удаляется. Ответ `401` очищает сессию, тогда как `403` не выполняет logout.
-
-В исходном контракте нет `/auth/me`, refresh token и server-side logout. Поэтому восстановление выполняется только из локальной сессии, а кнопка выхода удаляет её на клиенте. Route guards улучшают UX, но backend остаётся источником авторизации.
-
-## Публичный каталог
-
-- `/books` — поиск, фильтры по году/автору и пагинация книг;
-- `/books/:id` — публичная страница книги;
-- `/authors` — поиск и пагинация авторов;
-- `/authors/:id` — автор и его `BookShort`-список.
-
-Гость использует каталог авторов в режиме чтения. После входа доступны создание,
-редактирование и удаление авторов через защищённые маршруты `/authors/new` и
-`/authors/:id/edit`. Поведение при удалении автора, у которого есть книги, определяет backend:
-исходный контракт не задаёт отдельного frontend-правила для этого случая.
-
-Для книг guest также получает read-only доступ, а authenticated user — защищённые маршруты
-`/books/new` и `/books/:id/edit`, а также удаление с подтверждением. Создание выполняется
-через multipart `POST /books`. Редактирование без новой обложки использует JSON
-`PATCH /books/{id}`, а выбор нового файла переключает запрос на полный multipart
-`PUT /books/{id}`.
-
-Поиск отправляется по submit, без запроса на каждый ввод символа. `search`, `year`, `author_id` и `page` синхронизируются с URL; для API фиксированный размер страницы преобразуется в точный параметр `per-page`.
-
-Фильтр автора реализован как отдельный серверный поиск по Authors API с собственной пагинацией. Он не загружает только первые 20 авторов и не выдаёт их за полный список; выбранный `author_id` восстанавливается через публичный detail endpoint.
-
-## Публичный отчёт
-
-`/reports/top-authors` показывает полученный от backend TOP-10 авторов за выбранный целый год.
-Год синхронизируется с query parameter `year`, поэтому URL можно сохранить или передать.
-Валидный `?year=2025` автоматически загружает отчёт; отсутствующее или некорректное значение
-не вызывает API request.
-
-## API assumptions
-
-- Единственный source of truth для production API — [`book.yaml`](./book.yaml). Frontend не должен придумывать отсутствующие production endpoints.
-- OpenAPI описывает `author_ids` как multipart-массив, но явно не определяет его wire encoding.
-- Рабочее предположение для заявленного Yii2/PHP backend: элементы multipart-массива отправляются как `author_ids[]=1`, `author_ids[]=2`. Сериализация находится только в API layer, чтобы формат менялся в одном месте.
-- Ограничения cover, year и ISBN, отсутствующие в OpenAPI, не считаются backend requirements. Frontend проверяет только техническую корректность integer year и MIME `image/*`; ограничения размера и допустимых форматов файла определяет backend.
-- `/auth/me`, refresh token и logout endpoint отсутствуют. Auth-реализация ограничена `/auth/login` и client-side lifecycle сессии.
-- Subscription/SMS API в исходной спецификации отсутствует. Реализованный bonus остаётся изолированным demo-extension и не считается частью production-контракта.
-
-## Документация
-
-- [OpenAPI-спецификация](./book.yaml)
-- [План реализации](./docs/implementation-plan.md)
+- [OpenAPI contract](./book.yaml)
+- [Implementation plan](./docs/implementation-plan.md)
+- [Subscriptions/SMS production proposal](./docs/subscriptions-api.md)

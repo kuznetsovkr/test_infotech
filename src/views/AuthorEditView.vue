@@ -3,7 +3,7 @@ import { computed, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 
 import { getAuthor, updateAuthor } from '../api/authors.api'
-import { getApiErrorItems, getHttpStatus, isRequestCanceled } from '../api/errors'
+import { getHttpStatus, isRequestCanceled, mapApiFieldErrors } from '../api/errors'
 import AuthorForm from '../components/authors/AuthorForm.vue'
 import ErrorAlert from '../components/common/ErrorAlert.vue'
 import LoadingState from '../components/common/LoadingState.vue'
@@ -34,6 +34,7 @@ async function loadAuthor() {
   loadError.value = ''
 
   if (!authorId.value) {
+    latestRequest.cancel()
     isLoading.value = false
     isNotFound.value = true
     return
@@ -67,12 +68,11 @@ function setSubmitError(error) {
   const status = getHttpStatus(error)
 
   if (status === 422) {
-    const errors = getApiErrorItems(error)
-    const fullNameError = errors.find((item) => item.field === 'full_name')
-    const generalError = errors.find((item) => item.field !== 'full_name')
+    const validation = mapApiFieldErrors(error, ['full_name'])
 
-    fieldError.value = fullNameError?.message ?? ''
-    formError.value = generalError?.message ?? (fullNameError ? '' : 'Проверьте введённые данные.')
+    fieldError.value = validation.fieldErrors.full_name ?? ''
+    formError.value =
+      validation.formError || (fieldError.value ? '' : 'Проверьте введённые данные.')
     return
   }
 

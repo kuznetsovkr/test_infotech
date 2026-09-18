@@ -38,7 +38,7 @@
 | Вход пользователя                      | `POST /auth/login`, JSON `username/password`                                          | `/login`, форма входа, общая и полевая ошибка, блокировка повторного submit                      | Публично; успешный ответ создаёт локальную сессию                    |
 | Восстановление сессии после reload     | Отдельной операции нет; используются `token`, `user`, `expires_at` из `LoginResponse` | Выполняется до первого защищённого перехода; краткое начальное состояние инициализации           | Локально, без вымышленного `/me` или refresh endpoint                |
 | Просмотр каталога                      | `GET /books`                                                                          | `/books`: карточки/список, пагинация, loading/empty/error                                        | Публично                                                             |
-| Поиск книг                             | `GET /books?search=...`                                                               | Поисковое поле с label и debounce, значение в query string                                       | Публично                                                             |
+| Поиск книг                             | `GET /books?search=...`                                                               | Поисковая форма с label и submit, значение в query string                                        | Публично                                                             |
 | Фильтр по году                         | `GET /books?year=...`                                                                 | Числовое поле/селектор года, значение в query string                                             | Публично                                                             |
 | Фильтр по автору                       | `GET /books?author_id=...`; варианты авторов из `GET /authors`                        | Доступный searchable author filter, `author_id` в query string                                   | Публично                                                             |
 | Пагинация книг                         | `GET /books?page=...&per-page=...`                                                    | Pagination с текущей/предыдущей/следующей страницей и выбором размера                            | Публично                                                             |
@@ -90,7 +90,7 @@
 
 ### 4.4. Списки и отчёт
 
-1. Query-параметр API называется `per-page`, тогда как ответ содержит `per_page`. Route query будет человекочитаемым `per_page`, а API adapter явно преобразует его в точное имя `per-page`.
+1. Query-параметр API называется `per-page`, тогда как ответ содержит `per_page`. UI использует фиксированный размер страницы, а API adapter явно преобразует внутренний `perPage` в точное имя `per-page`.
 2. Не определены пределы `page`, `per-page`, year и search, а также порядок сортировки. UI валидирует положительные page/per-page и integer year, но не добавляет недоступные sort-параметры.
 3. Список авторов пагинирован. Нельзя загрузить «всех авторов» одним недокументированным большим `per-page`. Фильтр каталога и выбор авторов в форме должны поддерживать серверный search/pagination либо дозагрузку через документированные параметры.
 4. Отчёт требует year и возвращает готовый `rank`. Frontend не запрашивает отчёт, пока year невалиден, не пересчитывает rank и не предполагает ровно 10 строк, если backend вернул меньше.
@@ -102,11 +102,11 @@
 | Route                  | View                   | Доступ/поведение                                                                     |
 | ---------------------- | ---------------------- | ------------------------------------------------------------------------------------ |
 | `/`                    | redirect на `/books`   | Публично                                                                             |
-| `/books`               | `BooksCatalogView`     | Публично; query: `search`, `year`, `author_id`, `page`, `per_page`                   |
+| `/books`               | `BooksCatalogView`     | Публично; query: `search`, `year`, `author_id`, `page`                               |
 | `/books/new`           | `BookCreateView`       | `requiresAuth`; redirect на login с сохранением исходного URL                        |
 | `/books/:id`           | `BookDetailsView`      | Публично; числовой id проверяется до запроса                                         |
 | `/books/:id/edit`      | `BookEditView`         | `requiresAuth`; числовой id проверяется до запроса                                   |
-| `/authors`             | `AuthorsListView`      | Публично; query: `search`, `page`, `per_page`                                        |
+| `/authors`             | `AuthorsListView`      | Публично; query: `search`, `page`                                                    |
 | `/authors/new`         | `AuthorCreateView`     | `requiresAuth`                                                                       |
 | `/authors/:id`         | `AuthorDetailsView`    | Публично; содержит demo subscription form только при feature flag                    |
 | `/authors/:id/edit`    | `AuthorEditView`       | `requiresAuth`                                                                       |
@@ -211,30 +211,29 @@
 3. Создаётся Pinia, auth store синхронно/детерминированно восстанавливает сохранённую сессию и отбрасывает повреждённую или истёкшую.
 4. Router guard получает уже инициализированное состояние и разрешает маршрут либо ведёт на login.
 
-Планируемые client env variables:
+Client env variables:
 
 - `VITE_API_BASE_URL=/api/v1`;
 - `VITE_USE_MOCK_API=true|false`;
-- `VITE_ENABLE_SMS_DEMO=true|false`.
 
-Server-only переменные demo adapter не имеют префикса `VITE_`, например `SMS_DEMO_ENABLED` и `SMSPILOT_EMULATOR_KEY`. Они не должны попадать в `import.meta.env` browser bundle.
+Server-only переменная demo adapter — `SMSPILOT_API_KEY` без префикса `VITE_`. Она читается только Vite middleware в `dev:demo` и не попадает в `import.meta.env` browser bundle.
 
 ### 7.2. HTTP и auth
 
-1. Единый Axios instance получает base URL из env и разумный timeout.
-2. Request interceptor читает актуальный token из auth store, проверяет локальный expiry и добавляет `Authorization: Bearer ...`.
-3. Response interceptor нормализует transport errors. На `401`, кроме неуспешного login, очищает сессию; переход на login делается один раз с безопасным internal redirect.
-4. `403` остаётся прикладной ошибкой текущей операции. `422` проходит через `normalizeValidationErrors`, который превращает `errors[]` в field map и form-level messages.
+1. Единый Axios instance получает base URL из env.
+2. Request interceptor читает актуальный token из auth store; store проверяет локальный expiry, после чего interceptor добавляет `Authorization: Bearer ...`.
+3. Response interceptor на `401` очищает сессию; login route исключён из redirect cycle, а остальные routes получают безопасный internal redirect.
+4. `403` остаётся прикладной ошибкой текущей операции. Общая error infrastructure разбирает `errors[]` в field map и form-level messages, а book-specific mapper задаёт только список поддерживаемых полей.
 5. API adapters возвращают полезный `data` после минимальной проверки envelope. Компоненты не разбирают Axios response и не знают base URL.
 
-Состояние auth store: `token`, `user`, `expiresAt`, `isHydrated`; getters `isAuthenticated` и при необходимости `isExpired`; actions `login`, `hydrate`, `logout`. В persisted value сохраняются только данные сессии, не ошибки формы и не transient loading.
+Состояние auth store: `token`, `user`, `expiresAt`; getter `isAuthenticated`; actions `login`, `restoreSession`, `logout`. В persisted value сохраняются только данные сессии, не ошибки формы и не transient loading.
 
 ### 7.3. Каталог и URL query
 
-1. Route query является каноническим состоянием `search/year/author_id/page/per_page`.
+1. Route query является каноническим состоянием `search/year/author_id/page`; размер страницы фиксирован во view и передаётся API adapter отдельно.
 2. Composable парсит query в валидные значения, удаляет мусор и применяет defaults без бесконечных replace-навигаций.
-3. Изменение search/filter делает `router.replace`, сбрасывает `page` на 1; search debounce уменьшает количество запросов. Явная навигация по странице обновляет `page`.
-4. API adapter мапит `per_page` в `per-page` и не отправляет пустые параметры.
+3. Search/filter применяются по submit и сбрасывают `page` на 1. Явная навигация по странице обновляет `page`.
+4. API adapter мапит внутренний `perPage` в `per-page` и не отправляет пустые параметры.
 5. Watch route запускает запрос. Предыдущий Axios request отменяется либо его устаревший результат игнорируется, чтобы медленный ответ не перезаписал более новый фильтр.
 6. Response обновляет items и pagination. UI сохраняет фильтры при retry, показывает skeleton/spinner с доступным текстом, отдельные empty/error states и не считает ошибку пустым результатом.
 
@@ -249,7 +248,7 @@ Server-only переменные demo adapter не имеют префикса `
 5. Create вызывает `booksApi.create(toBookFormData(...))`.
 6. Edit выбирает метод только по наличию нового `File`: `updatePartial(id, json)` или `replace(id, FormData)`.
 7. При `422` нормализованные поля (`author_ids`, индексированные варианты вроде `author_ids.0`, `cover`) привязываются к соответствующим контролам. Неизвестные field names остаются в form-level summary.
-8. После успеха выполняется переход на detail созданной/обновлённой книги и доступное уведомление. Demo book-created event вызывается отдельно и только при обоих demo flags; его сбой не превращает успешно созданную книгу в ошибку CRUD.
+8. После успеха выполняется переход на detail созданной/обновлённой книги. В demo mode notification side effect инициируется внутри MSW create handler; его сбой не превращает успешно созданную книгу в ошибку CRUD.
 
 ### 7.5. Удаление
 
@@ -278,7 +277,7 @@ MSW handlers должны повторить операции, request content t
 - delete и `204`;
 - вычисление TOP-10 из текущей in-memory базы по переданному year и `400` при невалидном year.
 
-Mock state изменяется в памяти и сбрасывается после reload; это должно быть явно написано в README. Upload принимается как multipart, проверяется наличие required parts, а response использует контролируемый mock `cover_url`. Нельзя менять frontend-сериализацию только потому, что handler проще обработает другой формат.
+Mock state нормализован в памяти и сохраняется между reload в отдельном `localStorage`; `resetMockDatabase()` восстанавливает deterministic seed. Upload принимается как multipart, проверяется наличие required parts, а response использует локальный data URL `cover_url`. Нельзя менять frontend-сериализацию только потому, что handler проще обработает другой формат.
 
 Для ручной проверки error state стоит предусмотреть детерминированный development-механизм в fixtures/handlers или тестах, но не добавлять недокументированные query-параметры в production API adapter.
 
@@ -286,24 +285,19 @@ Mock state изменяется в памяти и сбрасывается по
 
 ### 9.1. Изоляция
 
-Demo включается только при `VITE_ENABLE_SMS_DEMO=true` вместе с development server adapter. В основном namespace `/api/v1` не появляется ни одного нового route. Для расширения используется явно технический namespace, например:
-
-- `POST /_demo/subscriptions` — принять `{ author_id, phone }`;
-- `POST /_demo/events/book-created` — принять минимальное событие созданной mock-книги.
-
-Эти URL существуют только в dev middleware, не экспортируются из `src/api`, а client wrappers находятся в `src/demo`. В production build feature по умолчанию выключена.
+Bonus включается вместе с `VITE_USE_MOCK_API=true`. В основном namespace `/api/v1` не появляется ни одного нового production route. Подписки и diagnostic log используют отдельный demo storage, а единственный технический endpoint `POST /__demo/sms/send` принадлежит Vite development middleware и принимает только телефон и текст сообщения. Он не экспортируется из `src/api`; production build исключает MSW, subscription UI/storage и SMS bridge.
 
 ### 9.2. Demo flow
 
 1. Гость открывает `/authors/:id`, вводит телефон в форме с label, подсказкой о тестовом режиме и согласием на demo-обработку.
-2. `/_demo/subscriptions` валидирует/нормализует телефон и проверяет существование author id в пределах доступной demo-инфраструктуры. Подписка сохраняется только в memory repository development process.
+2. Demo component нормализует телефон и идемпотентно сохраняет пару `author_id + phone` в отдельном `localStorage`.
 3. Авторизованный demo user создаёт книгу через настоящий для frontend `POST /api/v1/books`, перехваченный MSW.
-4. Только после успешного create frontend demo-hook посылает `book-created` с id/title/author ids в dev adapter. Это сознательный компромисс демонстрации; production не должен доверять browser-событию.
-5. Adapter находит подписчиков каждого автора, дедуплицирует номера для одной книги и передаёт сообщения в `smspilotAdapter`.
-6. `smspilotAdapter` жёстко настроен на официальный emulator/test mode. Даже случайная production credential не должна переключать transport на реальную отправку без изменения кода/конфигурации. Результат логируется без полного телефона и без ключа.
+4. После успешного create сам MSW handler запускает независимый notification side effect, не меняющий `201` при ошибке отправки.
+5. Demo notification infrastructure находит подписчиков каждого автора, дедуплицирует номера для одной книги и вызывает локальный Vite bridge.
+6. Server-side adapter жёстко добавляет `test=1` и `format=json` к запросу SMSPILOT API-1. Результат сохраняется в diagnostic log без ключа, а UI показывает маскированный телефон.
 7. Ошибка SMS показывается как отдельная demo diagnostic и не откатывает создание книги.
 
-Ключ SMSPILOT хранится только в env Node/Vite development process без префикса `VITE_`; client получает лишь результат demo endpoint. В репозиторий попадает `.env.example` с placeholder или публичным emulator-only значением, если условия SMSPILOT это допускают, но никогда реальный ключ.
+Ключ SMSPILOT хранится только в env Node/Vite development process без префикса `VITE_`; client получает лишь стабильный результат demo endpoint. Tracked `.env.demo` содержит официальный публичный emulator-only key, но никогда production credential.
 
 ### 9.3. Production proposal для `docs/subscriptions-api.md`
 
@@ -328,7 +322,7 @@ Demo включается только при `VITE_ENABLE_SMS_DEMO=true` вме
 - Обложки имеют alt по названию книги, декоративный fallback не дублирует соседний текст.
 - Layout проверяется минимум на узкой mobile ширине, tablet и desktop; формы не требуют горизонтального scroll.
 - Сетевые ошибки дают retry, empty state объясняет влияние фильтров и предлагает их очистить.
-- Все object URLs preview освобождаются при смене файла и unmount; timers/debounce/request cancellation также очищаются.
+- Все object URLs preview освобождаются при смене файла и unmount; активные request cancellation handlers также очищаются.
 - В runtime не остаётся `console.error` от Vue warnings, необработанных Promise или accessibility проблем. Служебные demo-логи централизованы и выключены вне demo mode.
 
 ## 11. Минимальный набор тестов
@@ -428,7 +422,7 @@ Demo включается только при `VITE_ENABLE_SMS_DEMO=true` вме
 - сначала создать `docs/subscriptions-api.md` с границами и production proposal;
 - добавить feature flags, client demo wrappers и dev middleware;
 - подключить только SMSPILOT emulator/test transport server-side;
-- добавить in-memory subscription flow, post-create demo event и tests с fake transport;
+- добавить persisted demo subscription flow, post-create MSW notification и tests с fake transport;
 - проверить отсутствие ключа в production client bundle.
 
 **Результат:** бонус демонстрируется, не меняя и не подменяя исходный API.

@@ -189,9 +189,15 @@ async function changePage(page) {
                 id="book-year"
                 v-model="yearInput"
                 class="form-control"
+                :class="{ 'is-invalid': filterError }"
                 type="number"
                 step="1"
+                :aria-invalid="filterError ? 'true' : 'false'"
+                :aria-describedby="filterError ? 'book-year-error' : undefined"
               />
+              <div v-if="filterError" id="book-year-error" class="invalid-feedback" role="alert">
+                {{ filterError }}
+              </div>
             </div>
             <div class="col-12 d-flex flex-wrap gap-2">
               <button class="btn btn-primary" type="submit">Применить</button>
@@ -200,9 +206,6 @@ async function changePage(page) {
               </button>
             </div>
           </div>
-          <p v-if="filterError" class="text-danger small mt-2 mb-0" role="alert">
-            {{ filterError }}
-          </p>
         </form>
       </div>
       <div class="col-12 col-lg-5">

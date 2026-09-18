@@ -3,7 +3,7 @@ import { ref } from 'vue'
 import { useRouter } from 'vue-router'
 
 import { createAuthor } from '../api/authors.api'
-import { getApiErrorItems, getHttpStatus } from '../api/errors'
+import { getHttpStatus, mapApiFieldErrors } from '../api/errors'
 import AuthorForm from '../components/authors/AuthorForm.vue'
 
 const router = useRouter()
@@ -20,12 +20,11 @@ function setSubmitError(error) {
   const status = getHttpStatus(error)
 
   if (status === 422) {
-    const errors = getApiErrorItems(error)
-    const fullNameError = errors.find((item) => item.field === 'full_name')
-    const generalError = errors.find((item) => item.field !== 'full_name')
+    const validation = mapApiFieldErrors(error, ['full_name'])
 
-    fieldError.value = fullNameError?.message ?? ''
-    formError.value = generalError?.message ?? (fullNameError ? '' : 'Проверьте введённые данные.')
+    fieldError.value = validation.fieldErrors.full_name ?? ''
+    formError.value =
+      validation.formError || (fieldError.value ? '' : 'Проверьте введённые данные.')
     return
   }
 

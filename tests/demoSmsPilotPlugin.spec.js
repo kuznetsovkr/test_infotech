@@ -81,14 +81,17 @@ describe('SMSPILOT server-side demo adapter', () => {
 })
 
 describe('Vite bridge activation', () => {
-  it('enables the bridge only for the demo development server', () => {
-    const demoServe = createViteConfig({ command: 'serve', mode: 'demo' })
-    const productionServe = createViteConfig({ command: 'serve', mode: 'production' })
-    const demoBuild = createViteConfig({ command: 'build', mode: 'demo' })
+  it('enables the bridge only for the demo development server', async () => {
+    const demoServe = await createViteConfig({ command: 'serve', mode: 'demo' })
+    const productionServe = await createViteConfig({ command: 'serve', mode: 'production' })
+    const demoBuild = await createViteConfig({ command: 'build', mode: 'demo' })
     const pluginNames = (config) => config.plugins.map((plugin) => plugin.name)
 
     expect(pluginNames(demoServe)).toContain('demo-smspilot-bridge')
     expect(pluginNames(productionServe)).not.toContain('demo-smspilot-bridge')
     expect(pluginNames(demoBuild)).not.toContain('demo-smspilot-bridge')
+    expect(demoServe.publicDir).toBe('public')
+    expect(demoBuild.publicDir).toBe('public')
+    expect(productionServe.publicDir).toBe(false)
   })
 })
