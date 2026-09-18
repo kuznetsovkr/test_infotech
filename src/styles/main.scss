@@ -1,0 +1,17 @@
+:root {
+  color-scheme: light;
+}
+
+body {
+  min-width: 320px;
+  min-height: 100vh;
+  background: var(--bs-tertiary-bg);
+}
+
+#app {
+  min-height: 100vh;
+}
+
+.home-view {
+  max-width: 48rem;
+}
