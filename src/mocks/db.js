@@ -1,4 +1,5 @@
 import { createSeedState } from './seed'
+import { resetDemoSubscriptionState } from './subscriptions'
 
 export const DEMO_DB_STORAGE_KEY = 'infotech-demo-db-v1'
 
@@ -64,6 +65,7 @@ export function mutateMockDatabase(mutation) {
 export function resetMockDatabase() {
   state = createSeedState()
   persistState(state)
+  resetDemoSubscriptionState()
 
   return state
 }

@@ -1,6 +1,7 @@
 import { http, HttpResponse } from 'msw'
 
 import { getMockDatabase, mutateMockDatabase } from './db'
+import { notifyDemoBookSubscribers } from './notifications'
 import { DEMO_CREDENTIALS, DEMO_TOKEN } from './seed'
 
 const API_PATH = '*/api/v1'
@@ -332,7 +333,14 @@ const createBookHandler = http.post(`${API_PATH}/books`, async ({ request }) => 
     return createdBook
   })
 
-  return success(serializeBook(getMockDatabase(), book), 201)
+  const serializedBook = serializeBook(getMockDatabase(), book)
+
+  void notifyDemoBookSubscribers({
+    book: serializedBook,
+    authors: serializedBook.authors,
+  }).catch(() => {})
+
+  return success(serializedBook, 201)
 })
 
 const getBookHandler = http.get(`${API_PATH}/books/:id`, ({ params }) => {

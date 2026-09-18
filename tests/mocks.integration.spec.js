@@ -1,11 +1,18 @@
 // @vitest-environment node
 
+import { http, HttpResponse } from 'msw'
 import { setupServer } from 'msw/node'
-import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest'
+import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest'
 
 import { getMockDatabase, resetMockDatabase } from '../src/mocks/db'
 import { handlers } from '../src/mocks/handlers'
 import { DEMO_CREDENTIALS, DEMO_TOKEN, SEED_AUTHOR_COUNT, SEED_BOOK_COUNT } from '../src/mocks/seed'
+import {
+  appendDemoSmsLog,
+  getDemoSmsLog,
+  getDemoSubscriptions,
+  subscribeToDemoAuthor,
+} from '../src/mocks/subscriptions'
 
 const API_URL = 'http://book-catalog.test/api/v1'
 const authorizationHeaders = {
@@ -79,6 +86,22 @@ async function createBook(options) {
   })
 }
 
+async function waitForSmsLog(predicate, timeout = 1000) {
+  const deadline = Date.now() + timeout
+
+  while (Date.now() < deadline) {
+    const entries = getDemoSmsLog()
+
+    if (predicate(entries)) {
+      return entries
+    }
+
+    await new Promise((resolve) => setTimeout(resolve, 10))
+  }
+
+  throw new Error('Timed out while waiting for the demo SMS log.')
+}
+
 beforeAll(() => {
   Object.defineProperty(globalThis, 'localStorage', {
     configurable: true,
@@ -90,6 +113,10 @@ beforeAll(() => {
 beforeEach(() => {
   globalThis.localStorage.clear()
   resetMockDatabase()
+})
+
+afterEach(() => {
+  server.resetHandlers()
 })
 
 afterAll(() => {
@@ -234,6 +261,88 @@ describe('MSW demo book mutations', () => {
   })
 })
 
+describe('MSW demo notification side effect', () => {
+  it('initiates the bridge after book creation for a subscribed author', async () => {
+    subscribeToDemoAuthor({ authorId: 1, phone: '+7 999 123-45-67' })
+    const bridgeRequests = []
+    server.use(
+      http.post('http://book-catalog.test/__demo/sms/send', async ({ request }) => {
+        bridgeRequests.push(await request.json())
+
+        return HttpResponse.json({
+          success: true,
+          provider: 'smspilot',
+          emulated: true,
+          server_id: '1000',
+        })
+      }),
+    )
+
+    const response = await createBook({
+      title: 'Книга с подпиской',
+      authorIds: [1],
+    })
+    const createdBook = (await readJson(response)).data
+    const entries = await waitForSmsLog((items) => items.length === 1)
+
+    expect(response.status).toBe(201)
+    expect(bridgeRequests).toEqual([
+      {
+        phone: '79991234567',
+        message: expect.stringContaining('Книга с подпиской'),
+      },
+    ])
+    expect(entries[0]).toMatchObject({
+      book_id: createdBook.id,
+      success: true,
+      server_id: '1000',
+    })
+  })
+
+  it('keeps Book POST successful and logs a provider failure', async () => {
+    subscribeToDemoAuthor({ authorId: 2, phone: '79995550102' })
+    server.use(
+      http.post('http://book-catalog.test/__demo/sms/send', () =>
+        HttpResponse.json(
+          {
+            success: false,
+            provider: 'smspilot',
+            emulated: true,
+            message: 'Emulator temporarily unavailable.',
+          },
+          { status: 502 },
+        ),
+      ),
+    )
+
+    const response = await createBook({ authorIds: [2] })
+    const entries = await waitForSmsLog((items) => items.length === 1)
+
+    expect(response.status).toBe(201)
+    expect(entries[0]).toMatchObject({
+      success: false,
+      error: 'Emulator temporarily unavailable.',
+    })
+  })
+
+  it('does not call the bridge when the new book has no subscribers', async () => {
+    const bridgeRequest = vi.fn()
+    server.use(
+      http.post('http://book-catalog.test/__demo/sms/send', () => {
+        bridgeRequest()
+        return HttpResponse.json({ success: true, provider: 'smspilot', emulated: true })
+      }),
+    )
+
+    const response = await createBook({ authorIds: [4] })
+    await new Promise((resolve) => setTimeout(resolve, 20))
+
+    expect(response.status).toBe(201)
+    expect(bridgeRequest).not.toHaveBeenCalled()
+    expect(getDemoSmsLog()).toEqual([])
+  })
+})
+
 describe('MSW demo author mutations and relations', () => {
   it('supports the author create, update, detail, and delete flow', async () => {
     const createResponse = await fetch(`${API_URL}/authors`, {
@@ -312,6 +421,16 @@ describe('MSW demo report and reset', () => {
       body: JSON.stringify({ full_name: 'Временный автор' }),
     })
     await createBook()
+    subscribeToDemoAuthor({ authorId: 1, phone: '79991234567' })
+    appendDemoSmsLog({
+      phone: '79991234567',
+      book_id: 100,
+      book_title: 'Temporary',
+      author_ids: [1],
+      author_names: ['Temporary Author'],
+      success: true,
+      server_id: '1000',
+    })
 
     resetMockDatabase()
 
@@ -326,5 +445,7 @@ describe('MSW demo report and reset', () => {
       nextAuthorId: SEED_AUTHOR_COUNT + 1,
       nextBookId: SEED_BOOK_COUNT + 1,
     })
+    expect(getDemoSubscriptions()).toEqual([])
+    expect(getDemoSmsLog()).toEqual([])
   })
 })

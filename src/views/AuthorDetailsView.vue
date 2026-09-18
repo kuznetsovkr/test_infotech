@@ -1,5 +1,5 @@
 <script setup>
-import { computed, ref, watch } from 'vue'
+import { computed, defineAsyncComponent, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 
 import { deleteAuthor, getAuthor } from '../api/authors.api'
@@ -17,6 +17,10 @@ const router = useRouter()
 const authStore = useAuthStore()
 const latestRequest = useLatestRequest()
 const authorId = computed(() => parsePositiveInteger(route.params.id))
+const isDemoMode = import.meta.env.VITE_USE_MOCK_API === 'true'
+const AuthorSubscription = isDemoMode
+  ? defineAsyncComponent(() => import('../components/authors/AuthorSubscription.vue'))
+  : null
 
 const author = ref(null)
 const isLoading = ref(false)
@@ -139,6 +143,12 @@ watch(() => route.params.id, loadAuthor, { immediate: true })
         </button>
       </div>
     </div>
+
+    <AuthorSubscription
+      v-if="isDemoMode && authorId"
+      :author-id="authorId"
+      :author-name="author.full_name || ''"
+    />
 
     <section aria-labelledby="author-books-title">
       <h2 id="author-books-title" class="h3 mb-3">Книги автора</h2>

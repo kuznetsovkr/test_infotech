@@ -1,6 +1,6 @@
 # Каталог книг
 
-Frontend тестового задания для каталога книг. Реализованы публичный каталог, TOP-10 отчёт, authentication, CRUD книг и авторов, а также необязательный локальный demo API на MSW. Subscription/SMS functionality пока не реализована.
+Frontend тестового задания для каталога книг. Реализованы публичный каталог, TOP-10 отчёт, authentication, CRUD книг и авторов, необязательный локальный demo API на MSW и изолированная bonus/demo-подписка с SMSPILOT emulator.
 
 ## Стек
 
@@ -74,6 +74,24 @@ Demo build можно отдельно проверить командой:
 npm run build:demo
 ```
 
+## Bonus: subscriptions + SMSPILOT emulator
+
+Subscription/SMS functionality — изолированное demo extension: таких endpoints и моделей нет в исходном [`book.yaml`](./book.yaml). Блок подписки доступен guest и authenticated user только в MSW demo mode.
+
+Ручной сценарий:
+
+1. Запустить `npm run dev:demo`.
+2. Открыть страницу автора как guest и подписаться, например с номером `+7 908 796-47-81`.
+3. Войти с credentials `demo / demo`.
+4. Создать книгу и выбрать этого автора.
+5. Вернуться на страницу автора и открыть «Последние тестовые уведомления».
+
+Номер технически нормализуется до 10–15 цифр. Подписки сохраняются отдельно в `infotech-demo-subscriptions-v1`, журнал — в `infotech-demo-sms-log-v1`; полный телефон в UI журнала маскируется. Один номер получает одно событие на книгу, даже при подписке на нескольких её соавторов.
+
+Vite demo server предоставляет локальный bridge `/__demo/sms/send`. Browser передаёт ему только телефон и текст, а server-side adapter добавляет `SMSPILOT_API_KEY`, `format=json` и обязательный `test=1`. Используется официальный публичный emulator key из [документации SMSPILOT API-1](https://smspilot.ru/apikey.php?tab=api1): запрос действительно обрабатывается API-1, но оператору не передаётся и реальная SMS не отправляется. Production credential отсутствует во frontend и repository; переменной `VITE_SMSPILOT_*` нет.
+
+Bridge существует только во время `npm run dev:demo`. Static `npm run build:demo` сохраняет subscription UI, но самостоятельно вызвать SMSPILOT не может и покажет failed demo event. Production proposal и схема backend event/job описаны в [`docs/subscriptions-api.md`](./docs/subscriptions-api.md).
+
 ## Проверки
 
 ```bash
@@ -90,6 +108,8 @@ npm run build
 | ------------------- | --------------------- | ----------------------------------------------------------------------------------------------- |
 | `VITE_API_BASE_URL` | `/api/v1`             | Base URL основного API. HTTP-клиент использует тот же fallback, если переменная не задана.      |
 | `VITE_USE_MOCK_API` | `false`               | Включает локальный MSW demo API при точном значении `true`; обычный режим остаётся выключенным. |
+
+`SMSPILOT_API_KEY` — server-side переменная только для Vite demo bridge. Она намеренно не имеет префикса `VITE_`; tracked `.env.demo` использует официальный публичный emulator key, а middleware всегда принудительно добавляет `test=1`.
 
 В `.env.example` нет credentials или других секретов. Переменные с префиксом `VITE_` попадают в browser bundle и не должны содержать секретные значения.
 
@@ -135,7 +155,7 @@ npm run build
 - Рабочее предположение для заявленного Yii2/PHP backend: элементы multipart-массива отправляются как `author_ids[]=1`, `author_ids[]=2`. Сериализация находится только в API layer, чтобы формат менялся в одном месте.
 - Ограничения cover, year и ISBN, отсутствующие в OpenAPI, не считаются backend requirements. Frontend проверяет только техническую корректность integer year и MIME `image/*`; ограничения размера и допустимых форматов файла определяет backend.
 - `/auth/me`, refresh token и logout endpoint отсутствуют. Auth-реализация ограничена `/auth/login` и client-side lifecycle сессии.
-- Subscription/SMS API в исходной спецификации отсутствует и в будущем останется изолированным demo-extension. На этапе 0 он не реализован.
+- Subscription/SMS API в исходной спецификации отсутствует. Реализованный bonus остаётся изолированным demo-extension и не считается частью production-контракта.
 
 ## Документация
 
